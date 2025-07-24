@@ -33,14 +33,19 @@
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.5",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.6.8",
     "cheerio": "^1.0.0-rc.12",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "csv-parser": "^3.2.0",
+    "fs-extra": "^11.3.0",
     "lucide-react": "^0.363.0",
     "next": "15.2.4",
-    "puppeteer": "^22.6.2",
+    "puppeteer": "^22.15.0",
+    "puppeteer-core": "^24.15.0",
     "react": "^18",
+    "react-day-picker": "^9.8.0",
     "react-dom": "^18",
     "tailwind-merge": "^2.2.2",
     "tailwindcss-animate": "^1.0.7"
@@ -51,12 +56,12 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "15.2.4",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   },
   "engines": {
     "node": ">=18.17.0",
     "npm": ">=9.0.0"
   }
-} 
+}
