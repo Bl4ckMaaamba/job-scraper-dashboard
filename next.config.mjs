@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
@@ -18,7 +15,6 @@ const nextConfig = {
   output: 'standalone',
   
   // Optimize for production
-  swcMinify: true,
   compress: true,
   
   // Configure headers for security
