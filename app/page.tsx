@@ -1,47 +1,30 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Upload, Download, Settings, Activity, Search, Play, Pause, Square, CheckCircle, Clock, Target } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import {
-  Upload,
-  Download,
-  Play,
-  Pause,
-  RotateCcw,
-  Clock,
-  Settings,
-  Target,
-  Activity,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface ScrapingJob {
   id: string
   sites: string[]
-  interval: number
-  status: "idle" | "running" | "paused" | "completed" | "error"
+  status: "idle" | "running" | "completed" | "error" | "paused"
   progress: number
-  currentSite?: string
-  startTime?: Date
+  startTime: Date
   results?: any[]
 }
 
 const SCRAPING_SITES = [
-  { id: "indeed", name: "Indeed", color: "bg-blue-600" },
-  { id: "linkedin", name: "LinkedIn", color: "bg-blue-700" },
-  { id: "proprietary", name: "Scraper Adaptatif", color: "bg-emerald-600" },
+  { id: "indeed", name: "Indeed", color: "bg-blue-600", description: "Platform de recherche d'emploi leader" },
+  { id: "linkedin", name: "LinkedIn", color: "bg-blue-700", description: "Réseau professionnel global" },
+  { id: "proprietary", name: "Adaptive Scraper", color: "bg-purple-600", description: "Scraping intelligent des sites d'entreprises" },
 ]
 
 const INTERVAL_OPTIONS = [
@@ -50,12 +33,12 @@ const INTERVAL_OPTIONS = [
   { value: 30, label: "30 minutes" },
   { value: 60, label: "1 heure" },
   { value: 120, label: "2 heures" },
-  { value: 360, label: "6 heures" },
-  { value: 720, label: "12 heures" },
+  { value: 240, label: "4 heures" },
+  { value: 480, label: "8 heures" },
   { value: 1440, label: "24 heures" },
 ]
 
-export default function JobScraperApp() {
+export default function JobScraperDashboard() {
   const [selectedSites, setSelectedSites] = useState<string[]>([])
   const [interval, setIntervalMinutes] = useState<number>(60)
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -64,7 +47,9 @@ export default function JobScraperApp() {
   const [autoMode, setAutoMode] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
 
-  // Charger les données depuis localStorage après hydratation
+  const { toast } = useToast()
+
+  // Load data from localStorage after hydration
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedSites = localStorage.getItem('selectedSites')
@@ -82,125 +67,32 @@ export default function JobScraperApp() {
       setIsHydrated(true)
     }
   }, [])
-  const { toast } = useToast()
 
-  // Fonctions pour sauvegarder dans localStorage
   const saveToLocalStorage = (key: string, value: any) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(key, JSON.stringify(value))
     }
   }
 
-  const resetApplication = () => {
-    setSelectedSites([])
-    setIntervalMinutes(60)
-    setCsvFile(null)
-    setCsvContent("")
-    setCurrentJob(null)
-    setAutoMode(false)
-    
-    // Nettoyer localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedSites')
-      localStorage.removeItem('interval')
-      localStorage.removeItem('csvContent')
-      localStorage.removeItem('currentJob')
-      localStorage.removeItem('autoMode')
-    }
-    
-    toast({
-      title: "Application réinitialisée",
-      description: "Toutes les données ont été effacées",
-    })
-  }
+  useEffect(() => {
+    saveToLocalStorage('selectedSites', selectedSites)
+  }, [selectedSites])
 
-  const simulateProgress = (job: ScrapingJob) => {
-    const totalSteps = job.sites.length * 20
-    let currentStep = 0
-    let currentSiteIndex = 0
+  useEffect(() => {
+    saveToLocalStorage('interval', interval)
+  }, [interval])
 
-    // @ts-ignore
-    const progressInterval = setInterval(() => {
-      if (job.status !== "running") {
-        // @ts-ignore
-        clearInterval(progressInterval)
-        return
-      }
+  useEffect(() => {
+    saveToLocalStorage('csvContent', csvContent)
+  }, [csvContent])
 
-      currentStep++
-      const progress = Math.min((currentStep / totalSteps) * 100, 100)
+  useEffect(() => {
+    saveToLocalStorage('currentJob', currentJob)
+  }, [currentJob])
 
-      if (currentStep % 20 === 0 && currentSiteIndex < job.sites.length - 1) {
-        currentSiteIndex++
-      }
-
-      const updatedJob = {
-        ...job,
-        progress,
-        currentSite: job.sites[currentSiteIndex],
-      }
-
-      setCurrentJob(updatedJob)
-
-      if (progress >= 100) {
-        clearInterval(progressInterval)
-        const completedJob = {
-          ...updatedJob,
-          status: "completed" as const,
-          progress: 100,
-          results: generateMockResults(job.sites.length),
-        }
-        setCurrentJob(completedJob)
-
-        toast({
-          title: "Scraping terminé",
-          description: `${completedJob.results?.length} offres d'emploi collectées avec succès`,
-        })
-      }
-    }, 200)
-  }
-
-  const generateMockResults = (siteCount: number) => {
-    const results = []
-    const jobTitles = [
-      "Développeur Frontend",
-      "Développeur Backend",
-      "Développeur Full Stack",
-      "Ingénieur DevOps",
-      "Data Scientist",
-      "UX/UI Designer",
-      "Product Manager",
-    ]
-    const companies = ["TechCorp", "InnovateLab", "StartupXYZ", "MegaTech", "CodeFactory", "DigitalWorks", "FutureTech"]
-    const locations = ["Paris", "Lyon", "Marseille", "Toulouse", "Nantes", "Bordeaux", "Lille"]
-
-    for (let i = 0; i < siteCount * 15; i++) {
-      results.push({
-        id: `job_${i}`,
-        title: jobTitles[i % jobTitles.length],
-        company: companies[i % companies.length],
-        location: locations[i % locations.length],
-        salary: `${30 + (i % 20)}k - ${50 + (i % 30)}k €`,
-        site: SCRAPING_SITES[i % SCRAPING_SITES.length].name,
-        url: `https://example.com/job/${i}`,
-        description: `Description du poste ${i}...`,
-        scraped_at: new Date().toISOString(),
-      })
-    }
-    return results
-  }
-
-  const handleSiteToggle = (siteId: string) => {
-    setSelectedSites((prev) => (prev.includes(siteId) ? prev.filter((id) => id !== siteId) : [...prev, siteId]))
-  }
-
-  const handleSelectAll = () => {
-    if (selectedSites.length === SCRAPING_SITES.length) {
-      setSelectedSites([])
-    } else {
-      setSelectedSites(SCRAPING_SITES.map((site) => site.id))
-    }
-  }
+  useEffect(() => {
+    saveToLocalStorage('autoMode', autoMode)
+  }, [autoMode])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -210,15 +102,16 @@ export default function JobScraperApp() {
       reader.onload = (e) => {
         const content = e.target?.result as string
         setCsvContent(content)
-        toast({
-          title: "Fichier CSV chargé",
-          description: `${content.split("\n").length - 1} entreprises détectées`,
-        })
       }
       reader.readAsText(file)
+      
+      toast({
+        title: "Fichier chargé",
+        description: `${file.name} a été chargé avec succès`,
+      })
     } else {
       toast({
-        title: "Erreur de fichier",
+        title: "Erreur",
         description: "Veuillez sélectionner un fichier CSV valide",
         variant: "destructive",
       })
@@ -247,7 +140,6 @@ export default function JobScraperApp() {
     const newJob: ScrapingJob = {
       id: `job_${Date.now()}`,
       sites: selectedSites,
-      interval,
       status: "running",
       progress: 0,
       startTime: new Date(),
@@ -256,7 +148,6 @@ export default function JobScraperApp() {
     setCurrentJob(newJob)
 
     try {
-      // Lancer le scraping via l'API
       const response = await fetch("/api/scraping", {
         method: "POST",
         headers: {
@@ -272,7 +163,6 @@ export default function JobScraperApp() {
       const data = await response.json()
 
       if (data.success) {
-        // Mettre à jour le job avec les informations de l'API
         const updatedJob = {
           ...newJob,
           id: data.job?.id || newJob.id,
@@ -282,7 +172,6 @@ export default function JobScraperApp() {
         setCurrentJob(updatedJob)
         
         if (data.job?.status === "completed") {
-          // Le scraping est déjà terminé, récupérer les résultats
           await checkResults(updatedJob.id)
         }
 
@@ -310,38 +199,6 @@ export default function JobScraperApp() {
     }
   }
 
-  const pauseScraping = () => {
-    if (currentJob) {
-      setCurrentJob({ ...currentJob, status: "paused" })
-      toast({
-        title: "Scraping en pause",
-        description: "Le processus a été mis en pause",
-      })
-    }
-  }
-
-  const resumeScraping = () => {
-    if (currentJob) {
-      const resumedJob = { ...currentJob, status: "running" as const }
-      setCurrentJob(resumedJob)
-      simulateProgress(resumedJob)
-      toast({
-        title: "Scraping repris",
-        description: "Le processus a repris",
-      })
-    }
-  }
-
-  const stopScraping = () => {
-    if (currentJob) {
-      setCurrentJob({ ...currentJob, status: "idle", progress: 0 })
-      toast({
-        title: "Scraping arrêté",
-        description: "Le processus a été interrompu",
-      })
-    }
-  }
-
   const checkResults = async (jobId: string) => {
     try {
       const response = await fetch(`/api/results?jobId=${jobId}`)
@@ -361,12 +218,10 @@ export default function JobScraperApp() {
           description: `${data.results?.length || 0} offres d'emploi collectées avec succès`,
         })
       } else {
-        // Si pas encore de résultats, réessayer dans 10 secondes
         setTimeout(() => checkResults(jobId), 10000)
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des résultats:", error)
-      // Réessayer dans 10 secondes en cas d'erreur
       setTimeout(() => checkResults(jobId), 10000)
     }
   }
@@ -374,66 +229,35 @@ export default function JobScraperApp() {
   const downloadResults = (job: ScrapingJob) => {
     if (job.results) {
       const dataStr = JSON.stringify(job.results, null, 2)
-      const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-
-      const exportFileDefaultName = `job_results_${new Date().toISOString().split("T")[0]}.json`
-
-      const linkElement = document.createElement("a")
-      linkElement.setAttribute("href", dataUri)
-      linkElement.setAttribute("download", exportFileDefaultName)
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr)
+      
+      const exportFileDefaultName = `job_results_${new Date().toISOString().split('T')[0]}.json`
+      
+      const linkElement = document.createElement('a')
+      linkElement.setAttribute('href', dataUri)
+      linkElement.setAttribute('download', exportFileDefaultName)
       linkElement.click()
-
-      toast({
-        title: "Téléchargement initié",
-        description: "Le fichier de résultats a été téléchargé",
-      })
     }
   }
 
-  // Sauvegarder automatiquement dans localStorage
-  useEffect(() => {
-    saveToLocalStorage('selectedSites', selectedSites)
-  }, [selectedSites])
-
-  useEffect(() => {
-    saveToLocalStorage('interval', interval)
-  }, [interval])
-
-  useEffect(() => {
-    saveToLocalStorage('csvContent', csvContent)
-  }, [csvContent])
-
-  useEffect(() => {
-    saveToLocalStorage('currentJob', currentJob)
-  }, [currentJob])
-
-
-
-  useEffect(() => {
-    saveToLocalStorage('autoMode', autoMode)
-  }, [autoMode])
-
   const startAutomaticScraping = async () => {
     try {
-      // Nettoyer les anciens résultats avant chaque exécution automatique
       const response = await fetch("/api/clear-results", { method: "POST" })
       if (response.ok) {
-        console.log("🔄 Mode automatique: Anciens résultats nettoyés")
+        console.log("🔄 Auto mode: Previous results cleared")
       }
     } catch (error) {
-      console.error("Erreur nettoyage automatique:", error)
+      console.error("Auto cleanup error:", error)
     }
 
-    // Lancer le scraping
-    console.log(`🤖 Mode automatique: Démarrage scraping (intervalle: ${interval}min)`)
+    console.log(`🤖 Auto mode: Starting scraping (interval: ${interval}min)`)
     await startScraping()
   }
 
   useEffect(() => {
     if (autoMode && selectedSites.length > 0 && csvFile) {
-      console.log(`🤖 Mode automatique ACTIVÉ - Intervalle: ${interval} minutes`)
+      console.log(`🤖 Auto mode ACTIVATED - Interval: ${interval} minutes`)
       
-      // Première exécution immédiate
       if (!currentJob || currentJob.status === "completed" || currentJob.status === "idle") {
         startAutomaticScraping()
       }
@@ -441,98 +265,87 @@ export default function JobScraperApp() {
       const autoInterval = setInterval(
         () => {
           if (!currentJob || currentJob.status === "completed" || currentJob.status === "idle") {
-            console.log(`🕒 Mode automatique: Déclenchement programmé après ${interval} minutes`)
+            console.log(`🕒 Auto mode: Scheduled trigger after ${interval} minutes`)
             startAutomaticScraping()
           } else {
-            console.log(`⏳ Mode automatique: Job en cours (${currentJob.status}), attente...`)
+            console.log(`⏳ Auto mode: Job in progress (${currentJob.status}), waiting...`)
           }
         },
         interval * 60 * 1000,
       )
 
       return () => {
-        console.log("🤖 Mode automatique DÉSACTIVÉ")
+        console.log("🤖 Auto mode DEACTIVATED")
         clearInterval(autoInterval)
       }
     } else if (autoMode) {
-      console.log("⚠️ Mode automatique: Configuration incomplète (sites ou CSV manquant)")
+      console.log("⚠️ Auto mode: Incomplete configuration (missing sites or CSV)")
     }
   }, [autoMode, interval, selectedSites, csvFile, currentJob])
 
+  if (!isHydrated) {
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-2 text-slate-600">Loading Dashboard...</p>
+      </div>
+    </div>
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex justify-between items-center">
-            <div></div>
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-slate-900">Job Scraper Dashboard</h1>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Automatisez la collecte d'offres d'emploi sur plusieurs plateformes avec un système de scraping intelligent
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={resetApplication}
-              className="border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Réinitialiser
-            </Button>
-          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Job Scraper Dashboard
+          </h1>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Professional multi-platform job collection system with intelligent automation
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Configuration Panel */}
-          <div className="xl:col-span-3 space-y-8">
-            {/* Site Selection */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Platform Selection */}
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="border-b border-slate-100 bg-white">
                 <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                   <Target className="h-6 w-6 text-blue-600" />
-                  Sélection des Plateformes
+                  Platform Selection
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Choisissez les sites d'emploi à inclure dans votre recherche
+                  Choose the job platforms to scrape
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                    className="border-slate-300 bg-transparent"
-                  >
-                    {selectedSites.length === SCRAPING_SITES.length ? "Désélectionner tout" : "Sélectionner tout"}
-                  </Button>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">
-                    {selectedSites.length}/{SCRAPING_SITES.length} sélectionnés
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {SCRAPING_SITES.map((site) => (
                     <div
                       key={site.id}
-                      className={`group relative overflow-hidden rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                         selectedSites.includes(site.id)
-                          ? "border-blue-500 bg-blue-50 shadow-sm"
-                          : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-slate-200 hover:border-slate-300"
                       }`}
+                      onClick={() => {
+                        setSelectedSites(prev =>
+                          prev.includes(site.id)
+                            ? prev.filter(s => s !== site.id)
+                            : [...prev, site.id]
+                        )
+                      }}
                     >
-                      <div className="flex items-center space-x-4 p-4">
+                      <div className="flex items-center space-x-3">
                         <Checkbox
-                          id={site.id}
                           checked={selectedSites.includes(site.id)}
-                          onCheckedChange={() => handleSiteToggle(site.id)}
+                          onChange={() => {}}
                         />
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className={`w-3 h-3 rounded-full ${site.color}`} />
-                          <Label htmlFor={site.id} className="cursor-pointer font-medium text-slate-900">
-                            {site.name}
-                          </Label>
+                        <div className={`w-3 h-3 rounded-full ${site.color}`} />
+                        <div>
+                          <div className="font-medium text-slate-900">{site.name}</div>
+                          <div className="text-sm text-slate-600">{site.description}</div>
                         </div>
                       </div>
                     </div>
@@ -546,43 +359,42 @@ export default function JobScraperApp() {
               <CardHeader className="border-b border-slate-100 bg-white">
                 <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                   <Upload className="h-6 w-6 text-green-600" />
-                  Liste des Entreprises
+                  Company Data
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Importez un fichier CSV contenant les entreprises à cibler
+                  Upload CSV file with company names
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    csvFile
-                      ? "border-green-300 bg-green-50"
-                      : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"
-                  }`}
-                >
-                  <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" id="csv-upload" />
-                  <label htmlFor="csv-upload" className="cursor-pointer block">
-                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-lg font-medium text-slate-900 mb-2">
-                      {csvFile ? csvFile.name : "Sélectionner un fichier CSV"}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      {csvFile ? "Fichier chargé avec succès" : "Glissez-déposez ou cliquez pour parcourir"}
-                    </p>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-center w-full">
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <Upload className="w-8 h-8 mb-4 text-slate-500" />
+                      <p className="mb-2 text-sm text-slate-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-slate-500">CSV files only</p>
+                    </div>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                    />
                   </label>
                 </div>
-
+                
                 {csvContent && (
-                  <div className="space-y-4">
-                    <Label className="text-sm font-medium text-slate-900">Aperçu du fichier :</Label>
+                  <div className="space-y-3">
                     <Textarea
-                      value={csvContent.split("\n").slice(0, 5).join("\n")}
+                      value={csvContent}
+                      placeholder="CSV content will appear here..."
                       readOnly
                       className="h-32 text-sm bg-slate-50 border-slate-200"
                     />
                     <p className="text-sm text-slate-600 flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-green-600" />
-                      {csvContent.split("\n").length - 1} entreprises détectées
+                      {csvContent.split("\n").length - 1} companies detected
                     </p>
                   </div>
                 )}
@@ -594,10 +406,10 @@ export default function JobScraperApp() {
               <CardHeader className="border-b border-slate-100 bg-white">
                 <CardTitle className="flex items-center gap-3 text-xl text-slate-900">
                   <Settings className="h-6 w-6 text-purple-600" />
-                  Configuration Automatique
+                  Automation Settings
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Définissez les paramètres d'exécution automatique
+                  Configure automatic scraping intervals
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-6">
@@ -610,37 +422,40 @@ export default function JobScraperApp() {
                   <div className="flex items-center gap-2">
                     <Activity className="h-5 w-5 text-purple-600" />
                     <Label htmlFor="auto-mode" className="font-medium text-slate-900">
-                      Mode automatique
+                      Auto Mode
                     </Label>
                   </div>
                   {autoMode && (
                     <div className="ml-auto flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50">
-                        🤖 Actif
+                        🤖 Active
                       </Badge>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 font-medium text-slate-900">
-                    <Clock className="h-5 w-5 text-blue-600" />
-                    Intervalle de répétition
-                  </Label>
-                  <Select value={(interval || 60).toString()} onValueChange={(value) => setIntervalMinutes(Number(value))}>
-                    <SelectTrigger className="border-slate-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INTERVAL_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value.toString()}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {autoMode && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Repeat Interval
+                      </Label>
+                      <Select value={(interval || 60).toString()} onValueChange={(value) => setIntervalMinutes(Number(value))}>
+                        <SelectTrigger className="border-slate-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INTERVAL_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value.toString()}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -650,33 +465,33 @@ export default function JobScraperApp() {
                 <CardHeader className="border-b border-green-200 bg-green-100">
                   <CardTitle className="flex items-center gap-3 text-lg text-green-900">
                     <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    Mode Automatique Actif
+                    Auto Mode Active
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium text-green-800">Intervalle:</span>
+                      <span className="font-medium text-green-800">Interval:</span>
                       <p className="text-green-700">{interval} minutes</p>
                     </div>
                     <div>
                       <span className="font-medium text-green-800">Sites:</span>
-                      <p className="text-green-700">{selectedSites.length} sélectionnés</p>
+                      <p className="text-green-700">{selectedSites.length} selected</p>
                     </div>
                     <div>
-                      <span className="font-medium text-green-800">Entreprises:</span>
-                      <p className="text-green-700">{csvContent ? csvContent.split("\n").length - 1 : 0} détectées</p>
+                      <span className="font-medium text-green-800">Companies:</span>
+                      <p className="text-green-700">{csvContent ? csvContent.split("\n").length - 1 : 0} detected</p>
                     </div>
                     <div>
                       <span className="font-medium text-green-800">Status:</span>
                       <p className="text-green-700">
-                        {currentJob?.status === "running" ? "En cours..." : "En attente"}
+                        {currentJob?.status === "running" ? "In progress..." : "Waiting"}
                       </p>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-green-200">
                     <p className="text-xs text-green-600">
-                      🕒 Le scraping se déclenchera automatiquement toutes les {interval} minutes
+                      🕒 Scraping will trigger automatically every {interval} minutes
                     </p>
                   </div>
                 </CardContent>
@@ -685,13 +500,13 @@ export default function JobScraperApp() {
           </div>
 
           {/* Control Panel */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Current Job Status */}
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="border-b border-slate-100 bg-white">
                 <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
                   <Activity className="h-5 w-5 text-blue-600" />
-                  Statut du Scraping
+                  Scraping Status
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -699,7 +514,7 @@ export default function JobScraperApp() {
                   <div className="space-y-6">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-slate-700">Progression</span>
+                        <span className="text-sm font-medium text-slate-700">Progress</span>
                         <Badge variant="outline" className="border-blue-300 text-blue-700">
                           {Math.round(currentJob.progress)}%
                         </Badge>
@@ -707,96 +522,117 @@ export default function JobScraperApp() {
                       <Progress value={currentJob.progress} className="h-2" />
                     </div>
 
-                    {currentJob.currentSite && (
-                      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-                        <div>
-                          <p className="text-sm text-slate-600">Site en cours :</p>
-                          <p className="font-medium text-slate-900">
-                            {SCRAPING_SITES.find((s) => s.id === currentJob.currentSite)?.name ||
-                              currentJob.currentSite}
-                          </p>
-                        </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Status</span>
+                        <Badge variant={currentJob.status === "completed" ? "default" : "secondary"}>
+                          {currentJob.status}
+                        </Badge>
                       </div>
-                    )}
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Sites</span>
+                        <span className="text-sm font-medium">{currentJob.sites.length}</span>
+                      </div>
 
-                    <div className="flex gap-2">
-                      {currentJob.status === "running" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={pauseScraping}
-                          className="border-orange-300 bg-transparent"
-                        >
-                          <Pause className="h-4 w-4 mr-2" />
-                          Pause
-                        </Button>
+                      {currentJob.results && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-slate-600">Results</span>
+                          <span className="text-sm font-medium text-green-600">
+                            {currentJob.results.length} jobs
+                          </span>
+                        </div>
                       )}
-                      {currentJob.status === "paused" && (
-                        <Button size="sm" onClick={resumeScraping} className="bg-green-600 hover:bg-green-700">
-                          <Play className="h-4 w-4 mr-2" />
-                          Reprendre
-                        </Button>
-                      )}
-                      <Button size="sm" variant="destructive" onClick={stopScraping}>
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Arrêter
+                    </div>
+
+                    <div className="space-y-3">
+                      <Button
+                        onClick={startScraping}
+                        disabled={currentJob.status === "running"}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {currentJob.status === "running" ? (
+                          <>
+                            <Clock className="mr-2 h-4 w-4 animate-spin" />
+                            Scraping in Progress
+                          </>
+                        ) : (
+                          <>
+                            <Play className="mr-2 h-4 w-4" />
+                            Start New Scraping
+                          </>
+                        )}
                       </Button>
+
+                      {currentJob.results && currentJob.results.length > 0 && (
+                        <Button
+                          onClick={() => downloadResults(currentJob)}
+                          variant="outline"
+                          className="w-full"
+                          size="lg"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Results
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 space-y-4">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                      <Play className="h-8 w-8 text-slate-400" />
-                    </div>
-                    <p className="text-slate-600 font-medium">Prêt à démarrer</p>
+                  <div className="text-center py-8">
+                    <Search className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600 mb-4">No active scraping job</p>
                     <Button
                       onClick={startScraping}
                       disabled={selectedSites.length === 0 || !csvFile}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="w-full"
                       size="lg"
                     >
-                      <Play className="h-5 w-5 mr-2" />
-                      Démarrer le Scraping
+                      <Play className="mr-2 h-4 w-4" />
+                      Start Scraping
                     </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Results Download */}
-            {currentJob?.results && (
-              <Card className="shadow-sm border-slate-200">
-                <CardHeader className="border-b border-slate-100 bg-white">
-                  <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    Résultats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    <div className="text-center space-y-2">
-                      <div className="text-3xl font-bold text-green-600">{currentJob.results?.length || 0}</div>
-                      <p className="text-sm text-slate-600">offres d'emploi collectées</p>
-                      <p className="text-xs text-slate-500">{currentJob.sites?.length || 0} sites traités</p>
-                    </div>
-                    <Button
-                      onClick={() => downloadResults(currentJob)}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      size="lg"
-                    >
-                      <Download className="h-5 w-5 mr-2" />
-                      Télécharger JSON
-                    </Button>
+            {/* Quick Stats */}
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="border-b border-slate-100 bg-white">
+                <CardTitle className="text-lg text-slate-900">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Selected Platforms</span>
+                    <Badge variant="secondary">{selectedSites.length}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Companies Loaded</span>
+                    <Badge variant="secondary">
+                      {csvContent ? csvContent.split("\n").length - 1 : 0}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-slate-600">Auto Mode</span>
+                    <Badge variant={autoMode ? "default" : "secondary"}>
+                      {autoMode ? "ON" : "OFF"}
+                    </Badge>
+                  </div>
+                  {currentJob && currentJob.results && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Last Results</span>
+                      <Badge variant="default" className="bg-green-600">
+                        {currentJob.results.length} jobs
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     </div>
   )
-}
+} 
